@@ -17,7 +17,7 @@ import (
 	"github.com/neermitt/watermill-zeebe/pkg/zeebe"
 )
 
-func TestDefaultMarshaler_MarshalUnmarshal(t *testing.T) {
+func TestDefaultMarshaller_MarshalUnmarshal(t *testing.T) {
 	m := zeebe.DefaultMarshaler{}
 
 	msg := message.NewMessage(watermill.NewUUID(), []byte("{\"test\":123}"))
@@ -31,7 +31,7 @@ func TestDefaultMarshaler_MarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, msg.Payload, unmarshaledMsg.Payload)
 }
 
-func BenchmarkDefaultMarshaler_Marshal(b *testing.B) {
+func BenchmarkDefaultMarshaller_Marshal(b *testing.B) {
 	m := zeebe.DefaultMarshaler{}
 
 	msg := message.NewMessage(watermill.NewUUID(), []byte("{\"test\":123}"))
@@ -42,7 +42,7 @@ func BenchmarkDefaultMarshaler_Marshal(b *testing.B) {
 	}
 }
 
-func BenchmarkDefaultMarshaler_Unmarshal(b *testing.B) {
+func BenchmarkDefaultMarshaller_Unmarshal(b *testing.B) {
 	m := zeebe.DefaultMarshaler{}
 
 	msg := message.NewMessage(watermill.NewUUID(), []byte("{\"test\":123}"))
