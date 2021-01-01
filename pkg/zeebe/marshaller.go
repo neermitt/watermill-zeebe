@@ -34,7 +34,7 @@ type Message struct {
 
 // Marshaller marshals Watermill's message to Zeebe's message.
 type Marshaller interface {
-	Marshal(topic string, msg *message.Message) (Message, error)
+	Marshal(topic string, msg *message.Message) (*Message, error)
 }
 
 // Unmarshaler marshals Zeebe's message to Watermill's message.
