@@ -3,6 +3,7 @@ package zeebe
 import (
 	"encoding/json"
 	"strconv"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -13,6 +14,7 @@ import (
 const (
 	MessageNameMetadataKey = "message_name"
 	TimeToLiveMetadataKey  = "message_ttl"
+	DefaultTTl             = int64(5 * time.Minute / time.Millisecond)
 )
 
 type Message struct {
@@ -48,8 +50,9 @@ type MarshalerUnmarshaler interface {
 type DefaultMarshaler struct{}
 
 func (DefaultMarshaler) Marshal(topic string, msg *message.Message) (*Message, error) {
-	var name, correlationKey string
-	var ttl int64
+	var name = topic
+	var correlationKey = msg.UUID
+	var ttl = DefaultTTl
 	var metadata = make(map[string]string)
 	for k, v := range msg.Metadata {
 		switch k {
