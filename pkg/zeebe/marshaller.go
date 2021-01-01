@@ -48,12 +48,33 @@ type MarshalerUnmarshaler interface {
 type DefaultMarshaler struct{}
 
 func (DefaultMarshaler) Marshal(topic string, msg *message.Message) (*Message, error) {
+	var name, correlationKey string
+	var ttl int64
+	var metadata = make(map[string]string)
+	for k, v := range msg.Metadata {
+		switch k {
+		case MessageNameMetadataKey:
+			name = v
+		case TimeToLiveMetadataKey:
+			ttl = StringToInt64(v)
+		case middleware.CorrelationIDMetadataKey:
+			correlationKey = v
+		default:
+			metadata[k] = v
+		}
+	}
+	var payload interface{}
+	json.Unmarshal(msg.Payload, &payload)
+	variables, _ := json.Marshal(map[string]interface{}{
+		"metadata": metadata,
+		"payload":  payload,
+	})
 	return &Message{
-		Name:           MessageName(msg),
-		CorrelationKey: middleware.MessageCorrelationID(msg),
-		TimeToLive:     TimeToLive(msg),
+		Name:           name,
+		CorrelationKey: correlationKey,
+		TimeToLive:     ttl,
 		MessageId:      msg.UUID,
-		Variables:      string(msg.Payload),
+		Variables:      string(variables),
 	}, nil
 }
 
@@ -63,15 +84,29 @@ func (DefaultMarshaler) Unmarshal(job entities.Job) (*message.Message, error) {
 		return nil, err
 	}
 
-	vars := config.GetMap("variables")
+	payload := config.Get("payload")
 
-	b, err := json.Marshal(vars)
+	b, err := json.Marshal(payload)
 
 	msg := message.NewMessage(watermill.NewUUID(), b)
 
-	SetMessageName(config.GetString(MessageNameMetadataKey), msg)
-	middleware.SetCorrelationID(config.GetString(middleware.CorrelationIDMetadataKey), msg)
-	SetTimeToLiveString(config.GetInt(TimeToLiveMetadataKey), msg)
+	if messageName := config.GetString(MessageNameMetadataKey); messageName != "" {
+		SetMessageName(messageName, msg)
+	}
+
+	if correlationId := config.GetString(middleware.CorrelationIDMetadataKey); correlationId != "" {
+		middleware.SetCorrelationID(correlationId, msg)
+	}
+
+	if ttl := config.GetInt(TimeToLiveMetadataKey); ttl != 0 {
+		SetTimeToLiveString(ttl, msg)
+	}
+
+	metadata := config.GetMap("metadata")
+
+	for k, v := range metadata {
+		msg.Metadata[k] = v.(string)
+	}
 
 	return msg, nil
 }
@@ -96,6 +131,10 @@ func SetTimeToLiveString(ttl int64, msg *message.Message) {
 
 func TimeToLive(msg *message.Message) int64 {
 	val := msg.Metadata.Get(TimeToLiveMetadataKey)
+	return StringToInt64(val)
+}
+
+func StringToInt64(val string) int64 {
 	if val == "" {
 		return 0
 	}
