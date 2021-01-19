@@ -1,6 +1,7 @@
 package zeebe
 
 import (
+	"strings"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -79,6 +80,10 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 		}
 		resp, err := dispatcher.Send(msg.Context())
 		if err != nil {
+			if strings.HasSuffix(err.Error(), "message with that id was already published") {
+				p.logger.With(watermill.LogFields{"error": err}).Trace("Message already published to zeebe", logFields)
+				continue
+			}
 			return errors.Wrapf(err, "can't send message %s", msg.UUID)
 		}
 
